@@ -9,13 +9,23 @@ url = 'http://www.goodcarbadcar.net/2019/05/april-2019-the-best-selling-vehicles
 def request(webpage):
     r = requests.get(webpage)
     html = r.text
-    return html
-
-def get_table(html_text):
     soup = BeautifulSoup(html_text, 'html.parser')
+    return soup
+
+def get_table(soup):
     month_and_year = soup.find('h1', {'class':'vw-post-title'}).text.split()[0:2]
     table = soup.find('tbody').findAll('tr', {'id':re.compile('^table_3*')})
     return month_and_year, table
+
+def webpage_finder(soup_input):
+    for i in range(1,31):
+        webpages = []
+        website = url + str(i) + suffix
+        soup = request(soup_input)
+        websites = soup.findAll('a' ,{'class':'vw-post-box__link'})
+        for i in range(0, len(websites)-1):
+            links.append(websites[i].get('href'))
+    return webpages
 
 def write_table(table):
     auto_sales = []
