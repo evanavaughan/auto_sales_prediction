@@ -5,10 +5,11 @@ from bs4 import BeautifulSoup
 
 url = 'http://www.goodcarbadcar.net/2019/05/april-2019-the-best-selling-vehicles-in-america-every-vehicle-ranked/'
 
+site = 'http://www.goodcarbadcar.net/best-sellers/page/'
 
 def request(webpage):
     r = requests.get(webpage)
-    html = r.text
+    html_text = r.text
     soup = BeautifulSoup(html_text, 'html.parser')
     return soup
 
@@ -17,32 +18,30 @@ def get_table(soup):
     table = soup.find('tbody').findAll('tr', {'id':re.compile('^table_3*')})
     return month_and_year, table
 
-def webpage_finder(soup_input):
+def webpage_finder(url):
+    webpages = []
     for i in range(1,31):
-        webpages = []
-        website = url + str(i) + suffix
-        soup = request(soup_input)
+        website = url + str(i) + '/'
+        soup = request(website)
         websites = soup.findAll('a' ,{'class':'vw-post-box__link'})
         for i in range(0, len(websites)-1):
-            links.append(websites[i].get('href'))
+            webpages.append(websites[i].get('href'))
     return webpages
 
-def write_table(table):
+def get_sales_data(table):
     auto_sales = []
     for i in range(0, len(table)-1):
         auto_sales.append(table[i].text.split('\n'))
     return auto_sales
 
-def write_to_csv(month_and_year, table):
-    month = month_and_year[0]
-    year = month_and_year[1]
+def write_monthly_table(month_and_year, table):
+    month, year = month_and_year[0], month_and_year[1]
     file = str(month) + '_' + str(year)
-    with open(file, 'w', newline='') as myfile:
+    write_to_csv(file, table)
+
+def write_to_csv(filename, table):
+    with open(filename, 'w', newline='') as myfile:
         w = csv.writer(myfile)
         w.writerow(table)
 
-if __name__ == '__main__':
-    x = request(url)
-    y = get_table(x)
-    z = write_table(y[1])
-    write_to_csv(y[0], z)
+#if __name__ == '__main__':
