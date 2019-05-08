@@ -44,4 +44,12 @@ def write_to_csv(filename, table):
         w = csv.writer(myfile)
         w.writerow(table)
 
+def url_cleaner(urls):
+    bad_words = ['anada', 'minivan', 'truck', 'top', 'ytd', 'britain', 'suv', 'luxury', 'cars',
+                 'uk', 'sport', 'used', 'small', 'midsize', 'worst', 'large', 'commercial',
+                 '25-best', '30-best', 'sporty', 'japan', 'trash']
+    blacklist = re.compile('|'.join([re.escape(word) for word in bad_words]))
+    revised_urls = [word for word in urls if not blacklist.search(word)]
+    return revised_urls
+
 #if __name__ == '__main__':
