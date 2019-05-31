@@ -20,3 +20,13 @@ def make_dataframe(soup):
             df2 = pd.DataFrame({'Rank':[rank], 'Auto':[auto], 'Current':[curr], 'Last':[last]})
             df = df.append(df2)
     return df
+
+def cell_cleaning(item):
+    item = item.strip(' \n')
+    item = item.strip('#')
+    item = item.strip(',')
+    item = item.replace('\n', '')
+    item = item.replace(',', '')
+    return item
+
+#df = df.applymap(lambda x: cell_cleaning(x))
