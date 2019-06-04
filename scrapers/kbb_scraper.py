@@ -20,32 +20,49 @@ class ListingBuilder:
 
 
 class Scraper:
+    '''
+    bob = Scraper()
+    bob.get_listing_pages()
+    bob.clean_url_list()
+    bob.write_list_to_file('./urls/url_list.csv')
+    '''
 
-    def __init__(self, url):
-        self.url = url
-
-    def get_lxml(self):
-
-    def get_html(self):
+    def get_lxml(self, site):
+        html = requests.get(site).text
+        self.site_lxml = BeautifulSoup(html, 'lxml')
+        return self.site_lxml
 
     def get_listing_pages(self):
-        '''
-        scrapes search landing page to get urls for individual car makes/models/year
-        '''
+        '''scrapes search results to get url list for individual car models'''
+
         prefix = 'https://www.kbb.com/car-finder/'
         suffix = '/?categories=sedan&years=2006-2020'
-        urls = []
-        for i in range(1,139):
+        self.urls = []
+        for i in range(1,5):        #change to 139
             site  = prefix + str(i) + suffix
-            html = requests.get(site).text
-            soup = BeautifulSoup(html, 'lxml')
-            for link in soup.find_all('a'):
-                urls.append(link.get('href'))
-        self.cleaned_list = [clean(url) for url in urls if url.startswith('https://staging')]
-        return self.cleaned_list
+            #html = requests.get(site).text
+            #soup = BeautifulSoup(html, 'lxml')
+            for link in self.get_lxml(site).find_all('a'):
+                self.urls.append(link.get('href'))
+        return self.urls
 
-class Parser:
+    def clean_url_list(self):
+        '''string cleaning for the individual car page urls'''
 
-    def __init__(self, )
-    
-    def clean_list
+        urls = self.urls
+        cleaned_url_list = []
+        for url in urls:
+            if url.startswith('https://staging'):
+                url = url.replace('staging', 'www').split('?', 1)[0]
+                cleaned_url_list.append(url)
+        self.cleaned_url_list = cleaned_url_list
+        return self.cleaned_url_list
+
+
+    def write_list_to_file(self, filename): #save to './urls/url_list.csv'
+        '''write the list to csv file'''
+        urls = self.cleaned_url_list
+        with open(filename, "w") as outfile:
+            for row in urls:
+                outfile.write(row)
+                outfile.write("\n")
