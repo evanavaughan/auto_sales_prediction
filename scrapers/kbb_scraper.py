@@ -24,9 +24,11 @@ class Scraper:
     def __init__(self, url):
         self.url = url
 
+    def get_lxml(self):
 
+    def get_html(self):
 
-    def scrape_search_page(self):
+    def get_listing_pages(self):
         '''
         scrapes search landing page to get urls for individual car makes/models/year
         '''
@@ -41,3 +43,9 @@ class Scraper:
                 urls.append(link.get('href'))
         self.cleaned_list = [clean(url) for url in urls if url.startswith('https://staging')]
         return self.cleaned_list
+
+class Parser:
+
+    def __init__(self, )
+    
+    def clean_list
