@@ -19,6 +19,8 @@ class Scraper:
     '''
 
     def get_lxml(self, site):
+        '''url is input, grabs xml from site, outputs as a string'''
+
         html = requests.get(site).text
         self.site_lxml = BeautifulSoup(html, 'lxml')
         return self.site_lxml
@@ -47,6 +49,7 @@ class Scraper:
 
     def backup_list_to_csv(self, filename):
         '''write the list to csv file'''
+
         urls = self.cleaned_url_list
         with open(filename, "w") as outfile:
             for row in urls:
@@ -111,10 +114,14 @@ class ReviewsParser:
         self.reviews_link = reviews_link
 
     def find_review_count(self):
+        '''parses xml to extract count of reviews'''
+
         review_count = self.reviews_link.find('span', {'class':'js-review-pager consumer-review-page'})
         return int(review_count.text)
 
     def find_rating_score(self):
+        '''parses xml to extract rating score'''
+
         rating = self.reviews_link.find('div', {'class':'rating-number'})
         return int(rating.text)
 
