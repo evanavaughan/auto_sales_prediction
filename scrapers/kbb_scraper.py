@@ -6,9 +6,11 @@ import re
 from variables import search_results, pre, suf
 
 
-
-
-
+def test():
+    bob = Scraper()
+    bob.get_listing_pages(pre, suf)
+    bob.clean_url_list()
+    return bob
 
 class Scraper:
     '''
@@ -27,6 +29,7 @@ class Scraper:
 
     def get_listing_pages(self, prefix, suffix):
         '''scrapes search results to get url list for individual car models'''
+
         self.urls = []
         for i in range(1,5):        #change to 139
             site  = prefix + str(i) + suffix
