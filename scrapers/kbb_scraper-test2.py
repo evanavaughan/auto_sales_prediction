@@ -15,7 +15,7 @@ def test():
     x = bob.get_lxml(x)
     return bob
 
-
+class Scraper:
     '''
     bob = Scraper()
     bob.get_listing_pages(pre, suf)
@@ -25,51 +25,48 @@ def test():
         everything in ModelParser
     '''
 
-class KBB:
 
-    def __init__(self):
-        self.listing_page_urls = []
-        self.session = requests.Session()
-
-    def scrape(self):
-        self.reciever(self.main_url) #change main url
-
-    def receiver(self, link):
-        """Collecting side-bar links."""
-        response = self.session.get(link).text
-        tree = BeautifulSoup(response, 'lxml')
-
-        for i in range(1,5):        #change to 139
-            site  = prefix + str(i) + suffix
-            self.get_listing_page(site)
-
-class Requests
-    def __init__(self, site):
+    def get_lxml(self, site):
         '''url is input, grabs xml from site, outputs as a string'''
 
         html = requests.get(site).text
         self.site_lxml = BeautifulSoup(html, 'lxml')
+        return self.site_lxml
 
     def get_listing_pages(self, prefix, suffix):
         '''scrapes search results to get url list for individual car models'''
 
-        urls = []
-        for link in self.get_lxml(site).find_all('a'):
-            urls.append(link.get('href'))
-        self.clean_url_list(urls)
+        self.urls = []
+        for i in range(1,5):        #change to 139
+            site  = prefix + str(i) + suffix
+            for link in self.get_lxml(site).find_all('a'):
+                self.urls.append(link.get('href'))
+        self.clean_url_list()
 
-    def clean_url_list(self, urls):
+    def clean_url_list(self):
         '''string cleaning for the individual car page urls'''
 
+        urls = self.urls
         cleaned_url_list = []
         for url in urls:
             if url.startswith('https://staging'):
                 url = url.replace('staging', 'www').split('?', 1)[0]
                 cleaned_url_list.append(url)
-        self.backup_list_to_csv('./urls/url_list.csv')
+        #backup_list_to_csv('./urls/url_list.csv')
+        self.cleaned_url_list = cleaned_url_list
+        print(self.cleaned_url_list[0:5])
         return self.cleaned_url_list
 
-    def backup_list_to_csv(self, filename):
+    def get_list_site_xml(self):
+        xml_list = []
+        for site in self.cleaned_url_list:
+            xml_list.append(self.get_lxml(site))
+        self.xml_list = xml_list
+        print(self.xml_list[0])
+        return self.xml_list
+
+
+    def backup_list_to_csv(filename):
         '''write the list to csv file'''
 
         urls = self.cleaned_url_list
@@ -82,7 +79,7 @@ class Requests
 class ModelParser(Scraper):
 
     def __init__(self, site_lxml):
-        super().__init__()
+        self.model_page = site_lxml[0]
 
     def combined_mpg(self):
         '''extracts and returns the combined mpg'''
@@ -132,10 +129,17 @@ class ModelParser(Scraper):
         url_prefix = 'https://www.kbb.com'
         url_suffix = self.model_page.find('button', {'id': 'see-all-reviews'}).get('href')
         reviews_link = url_prefix + url_suffix
-        self.reviews_lxml = get_lxml(reviews_link)
-        return self.reviews_lxml
+        return reviews_link
 
-class ReviewsParser():
+    def testy(self):
+        print(self.combined_mpg())
+        print(self.city_hwy_mpg())
+        print(self.ratings())
+        print(self.price_low_high())
+        print(self.expert_review())
+        print(self.get_reviews_link())
+
+class ReviewsParser(Scraper):
 
     def __init__(self, reviews_link):
 
@@ -144,7 +148,7 @@ class ReviewsParser():
         #use get_lxml function from Scraper class
 
     def find_review_count(self):
-        '''parses xml to extract count of reviews'''
+        '''parses xml to extract count of reviews''' #MAY BE OFFFFFFFF
 
         review_count = self.reviews_link.find('span', {'class':'js-review-pager consumer-review-page'})
         return int(review_count.text)
@@ -185,7 +189,7 @@ class ReviewsParser():
         return reviews
 
 
-    def extract_scores(souper):
+    def extract_scores(souper): #needs work, outputting empty list
         '''
         extracts and cleans each of the numberical categorical review scores
         outputs integers as a list of lists where:
