@@ -41,19 +41,24 @@ class Scraper:
             site  = prefix + str(i) + suffix
             for link in self.get_lxml(site).find_all('a'):
                 self.urls.append(link.get('href'))
-        return self.urls
+        self.clean_url_list()
 
     def clean_url_list(self):
         '''string cleaning for the individual car page urls'''
 
-        urls = self.urls
         cleaned_url_list = []
-        for url in urls:
+        for url in self.urls:
             if url.startswith('https://staging'):
                 url = url.replace('staging', 'www').split('?', 1)[0]
                 cleaned_url_list.append(url)
-        self.cleaned_url_list = cleaned_url_list
-        return self.cleaned_url_list
+        print(self.cleaned_url_list[0:5])
+        self.multiple_xml(cleaned_url_list)
+
+    def multiple_xml(self):
+        xml_list = []
+        for url in self.cleaned_url_list:
+            self.xml_list.append(self.get_lxml(url))
+        return xml_list
 
 
     def backup_list_to_csv(self, filename):

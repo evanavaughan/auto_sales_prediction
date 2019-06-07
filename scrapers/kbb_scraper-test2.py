@@ -15,7 +15,7 @@ def test():
     x = bob.get_lxml(x)
     return bob
 
-class Scraper:
+
     '''
     bob = Scraper()
     bob.get_listing_pages(pre, suf)
@@ -25,36 +25,49 @@ class Scraper:
         everything in ModelParser
     '''
 
+class KBB:
 
-    def get_lxml(self, site):
+    def __init__(self):
+        self.listing_page_urls = []
+        self.session = requests.Session()
+
+    def scrape(self):
+        self.reciever(self.main_url) #change main url
+
+    def receiver(self, link):
+        """Collecting side-bar links."""
+        response = self.session.get(link).text
+        tree = BeautifulSoup(response, 'lxml')
+
+        for i in range(1,5):        #change to 139
+            site  = prefix + str(i) + suffix
+            self.get_listing_page(site)
+
+class Requests
+    def __init__(self, site):
         '''url is input, grabs xml from site, outputs as a string'''
 
         html = requests.get(site).text
         self.site_lxml = BeautifulSoup(html, 'lxml')
-        return self.site_lxml
 
     def get_listing_pages(self, prefix, suffix):
         '''scrapes search results to get url list for individual car models'''
 
-        self.urls = []
-        for i in range(1,5):        #change to 139
-            site  = prefix + str(i) + suffix
-            for link in self.get_lxml(site).find_all('a'):
-                self.urls.append(link.get('href'))
-        return self.urls
+        urls = []
+        for link in self.get_lxml(site).find_all('a'):
+            urls.append(link.get('href'))
+        self.clean_url_list(urls)
 
-    def clean_url_list(self):
+    def clean_url_list(self, urls):
         '''string cleaning for the individual car page urls'''
 
-        urls = self.urls
         cleaned_url_list = []
         for url in urls:
             if url.startswith('https://staging'):
                 url = url.replace('staging', 'www').split('?', 1)[0]
                 cleaned_url_list.append(url)
-        self.cleaned_url_list = cleaned_url_list
+        self.backup_list_to_csv('./urls/url_list.csv')
         return self.cleaned_url_list
-
 
     def backup_list_to_csv(self, filename):
         '''write the list to csv file'''
