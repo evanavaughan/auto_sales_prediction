@@ -24,7 +24,7 @@ class Scraper:
     for _ in bob.clean_url_list():
         everything in ModelParser
     '''
-    def __init__(self, site):
+    def __init__(self, site=None):
         self.site = site
 
     def get_lxml(self, site):
