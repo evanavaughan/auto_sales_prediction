@@ -10,8 +10,10 @@ from variables import search_results, pre, suf
 def test():
     bob = Scraper()
     bob.get_listing_pages(pre, suf)
-    x = bob.clean_url_list()[20]
-    return bob.get_lxml(x)
+    x = bob.clean_url_list()
+    x = x[20]
+    x = bob.get_lxml(x)
+    return bob
 
 class Scraper:
     '''
@@ -39,19 +41,24 @@ class Scraper:
             site  = prefix + str(i) + suffix
             for link in self.get_lxml(site).find_all('a'):
                 self.urls.append(link.get('href'))
-        return self.urls
+        self.clean_url_list()
 
     def clean_url_list(self):
         '''string cleaning for the individual car page urls'''
 
-        urls = self.urls
         cleaned_url_list = []
-        for url in urls:
+        for url in self.urls:
             if url.startswith('https://staging'):
                 url = url.replace('staging', 'www').split('?', 1)[0]
                 cleaned_url_list.append(url)
-        self.cleaned_url_list = cleaned_url_list
-        return self.cleaned_url_list
+        print(cleaned_url_list[0:5])
+        self.multiple_xml(cleaned_url_list)
+
+    def multiple_xml(self):
+        xml_list = []
+        for url in self.cleaned_url_list:
+            self.xml_list.append(self.get_lxml(url))
+        return xml_list
 
 
     def backup_list_to_csv(self, filename):
@@ -66,8 +73,8 @@ class Scraper:
 
 class ModelParser(Scraper):
 
-    def __init__(self, model_page):
-        self.model_page = model_page
+    def __init__(self, site_lxml):
+        super().__init__()
 
     def combined_mpg(self):
         '''extracts and returns the combined mpg'''
@@ -110,8 +117,8 @@ class ModelParser(Scraper):
         expert_review = model_page[0].text
         return expert_review
 
-    def get_reviews_link(self):
-        '''extracts the url to the reviews page'''
+    def get_reviews_page_xml(self):
+        '''extracts the xml to the reviews page'''
         #outputting empty list
 
         url_prefix = 'https://www.kbb.com'
@@ -130,6 +137,7 @@ class ReviewsParser():
 
     def find_review_count(self):
         '''parses xml to extract count of reviews'''
+        #undercounting - listed 1 instead of 2
 
         review_count = self.reviews_link.find('span', {'class':'js-review-pager consumer-review-page'})
         return int(review_count.text)
@@ -170,7 +178,7 @@ class ReviewsParser():
         return reviews
 
 
-    def extract_scores(souper):
+    def extract_scores(self): #outputting empty list
         '''
         extracts and cleans each of the numberical categorical review scores
         outputs integers as a list of lists where:

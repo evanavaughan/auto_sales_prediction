@@ -8,12 +8,6 @@ from variables import search_results, pre, suf
 '''still editing'''
 
 def test():
-    bob = Scraper()
-    bob.get_listing_pages(pre, suf)
-    x = bob.clean_url_list()[20]
-    return bob.get_lxml(x)
-
-class Scraper:
     '''
     bob = Scraper()
     bob.get_listing_pages(pre, suf)
@@ -22,7 +16,16 @@ class Scraper:
     for _ in bob.clean_url_list():
         everything in ModelParser
     '''
+    bob = Scraper()
+    bob.get_listing_pages(pre, suf)
+    x = bob.clean_url_list()[16]
+    return bob.get_lxml(x)
+y
 
+class Requests:
+
+    def __init__(self, site=None):
+        self.site = site
 
     def get_lxml(self, site):
         '''url is input, grabs xml from site, outputs as a string'''
@@ -30,6 +33,8 @@ class Scraper:
         html = requests.get(site).text
         self.site_lxml = BeautifulSoup(html, 'lxml')
         return self.site_lxml
+
+class Scraper(Requests):
 
     def get_listing_pages(self, prefix, suffix):
         '''scrapes search results to get url list for individual car models'''
@@ -64,7 +69,7 @@ class Scraper:
                 outfile.write("\n")
 
 
-class ModelParser(Scraper):
+class ModelParser(Requests):
 
     def __init__(self, model_page):
         self.model_page = model_page
@@ -112,12 +117,11 @@ class ModelParser(Scraper):
 
     def get_reviews_link(self):
         '''extracts the url to the reviews page'''
-        #outputting empty list
 
         url_prefix = 'https://www.kbb.com'
         url_suffix = self.model_page.find('button', {'id': 'see-all-reviews'}).get('href')
         reviews_link = url_prefix + url_suffix
-        self.reviews_lxml = get_lxml(reviews_link)
+        self.reviews_lxml = self.get_lxml(reviews_link)
         return self.reviews_lxml
 
 class ReviewsParser():
@@ -128,10 +132,10 @@ class ReviewsParser():
         #self.Scraper.get_lxml(reviews_link)
         #use get_lxml function from Scraper class
 
-    def find_review_count(self):
+    def find_review_page_count(self):
         '''parses xml to extract count of reviews'''
 
-        review_count = self.reviews_link.find('span', {'class':'js-review-pager consumer-review-page'})
+        review_count = self.reviews_link.find('span', {'class':'total-consumer-reviews'})
         return int(review_count.text)
 
     def find_rating_score(self):
@@ -170,7 +174,7 @@ class ReviewsParser():
         return reviews
 
 
-    def extract_scores(souper):
+    def extract_scores(self):
         '''
         extracts and cleans each of the numberical categorical review scores
         outputs integers as a list of lists where:
@@ -189,3 +193,8 @@ class ReviewsParser():
             except:
                 pass
         return scores
+
+    def extract_all_reviews(self):
+        url_pre, url_suf = rev.split('page=1')[0], rev.split('page=1')[1]
+        for i in range(1, self.find_review_page_count()):
+            reviews_paginator = url_pre + 'page=' + str(i) + url_suf
