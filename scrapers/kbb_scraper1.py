@@ -19,8 +19,11 @@ def test():
     bob = Scraper()
     bob.get_listing_pages(pre, suf)
     x = bob.clean_url_list()[16]
-    return bob.get_lxml(x)
-y
+    x = bob.get_lxml(x)
+    tom = ModelParser(x)
+    y = tom.get_reviews_link()
+    tim = ReviewsParser(y)
+
 
 class Requests:
 
@@ -120,38 +123,43 @@ class ModelParser(Requests):
 
         url_prefix = 'https://www.kbb.com'
         url_suffix = self.model_page.find('button', {'id': 'see-all-reviews'}).get('href')
-        reviews_link = url_prefix + url_suffix
-        self.reviews_lxml = self.get_lxml(reviews_link)
-        return self.reviews_lxml
+        self.reviews_link = url_prefix + url_suffix
+        return self.reviews_link
 
-class ReviewsParser():
+class ReviewsParser(Requests):
 
     def __init__(self, reviews_link):
-
         self.reviews_link = reviews_link
-        #self.Scraper.get_lxml(reviews_link)
-        #use get_lxml function from Scraper class
+        self.reviews_lxml = self.get_lxml(reviews_link)
 
     def find_review_page_count(self):
         '''parses xml to extract count of reviews'''
 
-        review_count = self.reviews_link.find('span', {'class':'total-consumer-reviews'})
+        review_count = self.reviews_lxml.find('span', {'class':'total-consumer-reviews'})
         return int(review_count.text)
 
     def find_rating_score(self):
-        '''parses xml to extract rating score'''
+        '''parses xml to extract rating scores for each review on page
+        outputs as list (len = 1-3)'''
 
-        rating = self.reviews_link.find('div', {'class':'rating-number'})
-        return int(rating.text)
+        rating_scores = []
+        rating = self.reviews_lxml.find_all('div', {'class':'rating-number'})
+        for i in range(0,3):
+            try:
+                rating_scores.append(int(rating[i].text))
+            except:
+                pass
+        return rating_scores
 
 
     def extract_clean_dates(self):
-        '''extracts and cleans each of the dates on the review page'''
+        '''extracts and cleans each of the dates on the review page
+        outputs as list (len = 1-3)'''
 
         dates = []
         for i in range(1,10,4):
             try:
-                review = self.reviews_link.find_all('p', {'class':'paragraph-two'})[i].text
+                review = self.reviews_lxml.find_all('p', {'class':'paragraph-two'})[i].text
                 date = re.compile('\d+/\d+/\d+')
                 cleaned_date = date.findall(review)
                 dates.append(cleaned_date[0])
@@ -161,12 +169,13 @@ class ReviewsParser():
 
 
     def extract_reviews(self):
-        '''extracts and cleans each of the (1-3) reviews on page'''
+        '''extracts and cleans each of the (1-3) reviews on page
+        outputs as list (len = 1-3)'''
 
         reviews = []
         for i in range(2,11,4):
             try:
-                review = self.reviews_link.find_all('p', {'class':'paragraph-two'})
+                review = self.reviews_lxml.find_all('p', {'class':'paragraph-two'})
                 cleaned_review = re.sub('\n|\t|\r', '', review[i].text)
                 reviews.append(cleaned_review)
             except:
@@ -185,7 +194,7 @@ class ReviewsParser():
         scores = []
         for i in range(0,11):
             try:
-                review = self.reviews_link.find_all('div', {'class':'col-base-6 col-md-5 text-center'})[i]
+                review = self.reviews_lxml.find_all('div', {'class':'col-base-6 col-md-5 text-center'})[i]
                 numbers = re.compile('\d')
                 cleaned_numbers = numbers.findall(review.text)
                 cleaned_numbers = [int(number) for number in cleaned_numbers]
@@ -194,7 +203,11 @@ class ReviewsParser():
                 pass
         return scores
 
+
+
     def extract_all_reviews(self):
-        url_pre, url_suf = rev.split('page=1')[0], rev.split('page=1')[1]
-        for i in range(1, self.find_review_page_count()):
+        url_pre = self.reviews_link.split('page=1')[0]
+        url_suf = self.reviews_link.split('page=1')[1]
+        for i in range(1, self.find_review_page_count() + 1):
             reviews_paginator = url_pre + 'page=' + str(i) + url_suf
+            print(reviews_paginator)
