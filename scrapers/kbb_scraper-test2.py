@@ -4,47 +4,70 @@ import pandas as pd
 import csv
 import re
 from variables import search_results, pre, suf
-from pymongo import MongoClient
-from api_keys import client_pass
 
 '''still editing'''
 
-class Requests:
+def test():
+    bob = Scraper()
+    bob.get_listing_pages(pre, suf)
+    x = bob.clean_url_list()
+    x = x[20]
+    x = bob.get_lxml(x)
+    return bob
 
-    def __init__(self, site=None):
-        self.site = site
 
-    def get_lxml(self, site):
+    '''
+    bob = Scraper()
+    bob.get_listing_pages(pre, suf)
+    bob.clean_url_list()
+    bob.backup_list_to_csv('./urls/url_list.csv')
+    for _ in bob.clean_url_list():
+        everything in ModelParser
+    '''
+
+class KBB:
+
+    def __init__(self):
+        self.listing_page_urls = []
+        self.session = requests.Session()
+
+    def scrape(self):
+        self.reciever(self.main_url) #change main url
+
+    def receiver(self, link):
+        """Collecting side-bar links."""
+        response = self.session.get(link).text
+        tree = BeautifulSoup(response, 'lxml')
+
+        for i in range(1,5):        #change to 139
+            site  = prefix + str(i) + suffix
+            self.get_listing_page(site)
+
+class Requests
+    def __init__(self, site):
         '''url is input, grabs xml from site, outputs as a string'''
 
         html = requests.get(site).text
         self.site_lxml = BeautifulSoup(html, 'lxml')
-        return self.site_lxml
-
-class Scraper(Requests):
 
     def get_listing_pages(self, prefix, suffix):
         '''scrapes search results to get url list for individual car models'''
 
-        self.urls = []
-        for i in range(1,5):        #change to 139
-            site  = prefix + str(i) + suffix
-            for link in self.get_lxml(site).find_all('a'):
-                self.urls.append(link.get('href'))
-        return self.urls
+        urls = []
+        for link in self.get_lxml(site).find_all('a'):
+            urls.append(link.get('href'))
+        self.clean_url_list(urls)
 
-    def clean_url_list(self):
+    def clean_url_list(self, urls):
         '''string cleaning for the individual car page urls'''
 
-        urls = self.urls
         cleaned_url_list = []
         for url in urls:
             if url.startswith('https://staging'):
                 url = url.replace('staging', 'www').split('?', 1)[0]
                 cleaned_url_list.append(url)
-        self.cleaned_url_list = cleaned_url_list
+        self.backup_list_to_csv('./urls/url_list.csv')
         return self.cleaned_url_list
-
 
     def backup_list_to_csv(self, filename):
         '''write the list to csv file'''
@@ -56,10 +79,10 @@ class Scraper(Requests):
                 outfile.write("\n")
 
 
-class ModelParser(Requests):
+class ModelParser(Scraper):
 
-    def __init__(self, model_page):
-        self.model_page = model_page
+    def __init__(self, site_lxml):
+        super().__init__()
 
     def combined_mpg(self):
         '''extracts and returns the combined mpg'''
@@ -104,55 +127,42 @@ class ModelParser(Requests):
 
     def get_reviews_link(self):
         '''extracts the url to the reviews page'''
+        #outputting empty list
 
         url_prefix = 'https://www.kbb.com'
         url_suffix = self.model_page.find('button', {'id': 'see-all-reviews'}).get('href')
-        self.reviews_link = url_prefix + url_suffix
-        return self.reviews_link
+        reviews_link = url_prefix + url_suffix
+        self.reviews_lxml = get_lxml(reviews_link)
+        return self.reviews_lxml
 
-    def vehicle_id(self):
-        return int(self.reviews_link.split('vehicleid=')[1][0:6])
-
-class ReviewsParser(Requests):
+class ReviewsParser():
 
     def __init__(self, reviews_link):
+
         self.reviews_link = reviews_link
-        self.reviews_lxml = self.get_lxml(reviews_link)
+        #self.Scraper.get_lxml(reviews_link)
+        #use get_lxml function from Scraper class
 
-    def make_model_year(self):
-        make = self.reviews_link.split('/')[3].title()
-        model = self.reviews_link.split('/')[4].title()
-        year = self.reviews_link.split('/')[5].title()
-        return make, model, year
-
-    def find_review_page_count(self):
+    def find_review_count(self):
         '''parses xml to extract count of reviews'''
 
-        review_count = self.reviews_lxml.find('span', {'class':'total-consumer-reviews'})
+        review_count = self.reviews_link.find('span', {'class':'js-review-pager consumer-review-page'})
         return int(review_count.text)
 
-    def rating_score(self):
-        '''parses xml to extract rating scores for each review on page
-        outputs as tuple with count & list (len = 1-3)'''
+    def find_rating_score(self):
+        '''parses xml to extract rating score'''
 
-        rating_scores = []
-        rating = self.reviews_lxml.find_all('div', {'class':'rating-number'})
-        for i in range(0,3):
-            try:
-                rating_scores.append(int(rating[i].text))
-            except:
-                pass
-        return len(rating_scores), rating_scores
+        rating = self.reviews_link.find('div', {'class':'rating-number'})
+        return int(rating.text)
 
 
     def extract_clean_dates(self):
-        '''extracts and cleans each of the dates on the review page
-        outputs as list (len = 1-3)'''
+        '''extracts and cleans each of the dates on the review page'''
 
         dates = []
         for i in range(1,10,4):
             try:
-                review = self.reviews_lxml.find_all('p', {'class':'paragraph-two'})[i].text
+                review = self.reviews_link.find_all('p', {'class':'paragraph-two'})[i].text
                 date = re.compile('\d+/\d+/\d+')
                 cleaned_date = date.findall(review)
                 dates.append(cleaned_date[0])
@@ -162,13 +172,12 @@ class ReviewsParser(Requests):
 
 
     def extract_reviews(self):
-        '''extracts and cleans each of the (1-3) reviews on page
-        outputs as list (len = 1-3)'''
+        '''extracts and cleans each of the (1-3) reviews on page'''
 
         reviews = []
         for i in range(2,11,4):
             try:
-                review = self.reviews_lxml.find_all('p', {'class':'paragraph-two'})
+                review = self.reviews_link.find_all('p', {'class':'paragraph-two'})
                 cleaned_review = re.sub('\n|\t|\r', '', review[i].text)
                 reviews.append(cleaned_review)
             except:
@@ -176,7 +185,7 @@ class ReviewsParser(Requests):
         return reviews
 
 
-    def extract_scores(self):
+    def extract_scores(souper):
         '''
         extracts and cleans each of the numberical categorical review scores
         outputs integers as a list of lists where:
@@ -187,7 +196,7 @@ class ReviewsParser(Requests):
         scores = []
         for i in range(0,11):
             try:
-                review = self.reviews_lxml.find_all('div', {'class':'col-base-6 col-md-5 text-center'})[i]
+                review = self.reviews_link.find_all('div', {'class':'col-base-6 col-md-5 text-center'})[i]
                 numbers = re.compile('\d')
                 cleaned_numbers = numbers.findall(review.text)
                 cleaned_numbers = [int(number) for number in cleaned_numbers]
@@ -195,51 +204,3 @@ class ReviewsParser(Requests):
             except:
                 pass
         return scores
-
-
-    def review_builder(self):
-
-
-
-
-
-
-
-        self.find_rating_score()[0] #count of reviews per page
-        self.find_rating_score()[1] #list
-        self.extract_clean_dates() #list
-        self.extract_reviews() #list
-        self.extract_scores() #list of lists
-
-
-
-    def extract_all_reviews(self):
-        url_pre = self.reviews_link.split('page=1')[0]
-        url_suf = self.reviews_link.split('page=1')[1]
-        for i in range(1, self.find_review_page_count() + 1):
-            reviews_paginator = url_pre + 'page=' + str(i) + url_suf
-            print(reviews_paginator)
-
-
-
-
-
-class ListingsBuilder(ModelParser, ReviewsParser):
-
-
-        def test():
-            '''
-            bob = Scraper()
-            bob.get_listing_pages(pre, suf)
-            bob.clean_url_list()
-            bob.backup_list_to_csv('./urls/url_list.csv')
-            for _ in bob.clean_url_list():
-                everything in ModelParser
-            '''
-            bob = Scraper()
-            bob.get_listing_pages(pre, suf)
-            x = bob.clean_url_list()[16]
-            x = bob.get_lxml(x)
-            tom = ModelParser(x)
-            y = tom.get_reviews_link()
-            tim = ReviewsParser(y)
