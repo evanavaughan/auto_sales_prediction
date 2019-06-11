@@ -6,7 +6,6 @@ import re
 from variables import search_results, pre, suf
 from pymongo import MongoClient
 from api_keys import client_pass
-import math
 
 '''still editing'''
 
@@ -78,13 +77,11 @@ class ModelParser(Requests):
 
     def ratings(self):
         '''extracts and expert and user ratings from page as float'''
-        try:
-            rating = self.model_page.find_all('p', {'class':'rating-text'})
-            expert_rating = float(rating[0].text.split()[0])
-            user_rating = float(rating[1].text.split()[0])
-            return expert_rating, user_rating
-        except:
-            return 99, 99
+
+        rating = self.model_page.find_all('p', {'class':'rating-text'})
+        expert_rating = float(rating[0].text.split()[0])
+        user_rating = float(rating[1].text.split()[0])
+        return expert_rating, user_rating
 
     def price_low_high(self):
         '''extracts price range, parses it, returns the high and low price'''
@@ -96,7 +93,7 @@ class ModelParser(Requests):
             high = int(price[2])
             return low, high
         except:
-            pass
+            return 'NaN'
 
     def expert_review(self):
         '''returns raw text of expert review'''
@@ -105,65 +102,34 @@ class ModelParser(Requests):
         expert_review = model_page[0].text
         return expert_review
 
-
     def get_reviews_link(self):
         '''extracts the url to the reviews page'''
 
         url_prefix = 'https://www.kbb.com'
-        try:
-            url_suffix = self.model_page.find('button', {'id': 'see-all-reviews'}).get('href')
-            self.reviews_link = url_prefix + url_suffix
-            return self.reviews_link
-        except:
-            pass
+        url_suffix = self.model_page.find('button', {'id': 'see-all-reviews'}).get('href')
+        self.reviews_link = url_prefix + url_suffix
+        return self.reviews_link
 
     def vehicle_id(self):
-        try:
-            id = self.model_page.find('button', {'class': 'button-two js-spec-list-link'}).get('data-url')
-            return int(id[-6:])
-        except:
-            pass
+        return int(self.reviews_link.split('vehicleid=')[1][0:6])
 
-    def make_model_year(self):
-        make = self.model_page.find('title').text.split()[1]
-        model = self.model_page.find('title').text.split()[2]
-        year = self.model_page.find('title').text.split()[0]
-        return make, model, int(year)
-
-    def put_models_in_database(self):
-        client = MongoClient(client_pass)
-        db = client.autos
-        MODEL = {
-                'Vehicle_id': self.vehicle_id(),
-                'Manufacturer': self.make_model_year()[0],
-                'Model': self.make_model_year()[1],
-                'Year': self.make_model_year()[2],
-                'Combined MPG': self.combined_mpg(),
-                'City MPG': self.city_hwy_mpg()[0],
-                'Hwy MPG': self.city_hwy_mpg()[1],
-                'Expert Rating': self.ratings()[0],
-                'User Rating': self.ratings()[1],
-                'Price': self.price_low_high(),
-                'Expert Review': self.expert_review(),
-            }
-        db.models.insert(MODEL)
-
-
-class ReviewsParser(ModelParser):
+class ReviewsParser(Requests):
 
     def __init__(self, reviews_link):
         self.reviews_link = reviews_link
-        try:
-            self.reviews_lxml = self.get_lxml(reviews_link)
-        except:
-            pass
+        self.reviews_lxml = self.get_lxml(reviews_link)
 
+    def make_model_year(self):
+        make = self.reviews_link.split('/')[3].title()
+        model = self.reviews_link.split('/')[4].title()
+        year = self.reviews_link.split('/')[5].title()
+        return make, model, year
 
     def find_review_page_count(self):
         '''parses xml to extract count of reviews'''
 
-        review_count = self.reviews_lxml.find('span', {'class':'total-consumer-reviews'}).text
-        return int(review_count)
+        review_count = self.reviews_lxml.find('span', {'class':'total-consumer-reviews'})
+        return int(review_count.text)
 
     def rating_score(self):
         '''parses xml to extract rating scores for each review on page
@@ -230,81 +196,50 @@ class ReviewsParser(ModelParser):
                 pass
         return scores
 
-    def v_id(self):
-        '''
-        pulls the vehicle id out of the xml of the review page
-        '''
-        id = self.reviews_lxml.find('div', {'class':'modal-scroller'}).get('data-base-panel-url')
-        id = id.split('vehicleid=')[1][:6]
-        return int(id)
 
-
-    def extract_all_reviews_urls(self):
-        self.reviews_urls = []
-        try:
-            url_pre = self.reviews_link.split('page=1')[0]
-            url_suf = self.reviews_link.split('page=1')[1]
-            review_pages_count = math.ceil(self.find_review_page_count()/3)+1
-            review_count = 1
-            for i in range(1, review_pages_count + 1):
-                reviews_paginator = url_pre + 'page=' + str(i) + url_suf
-                self.reviews_urls.append(reviews_paginator)
-            print(self.reviews_urls)
-        except:
-            print(self.reviews_urls)
-
-
-    def put_reviews_in_database(self):
-        client = MongoClient(client_pass)
-        db = client.autos
-        if len(self.reviews_urls) > 0:
-            review_count = 1
-            for url in self.reviews_urls:
-                for j in range(0, 3):
-                    try:
-                        self.get_lxml(url)
-                        v_id = self.v_id()
-                        review_id = review_count
-                        date_of_review = self.extract_clean_dates()[j]
-                        rating_score = self.rating_score()[1][j]
-                        review = self.extract_reviews()[j]
-                        value = self.extract_scores()[j][0]
-                        quality = self.extract_scores()[j][1]
-                        reliability = self.extract_scores()[j][2]
-                        performance = self.extract_scores()[j][3]
-                        comfort = self.extract_scores()[j][4]
-                        styling = self.extract_scores()[j][5]
-                        REVIEW = {
-                                    'Vehicle_id': v_id,
-                                    'Review_id': review_id,
-                                    'Date of Review': date_of_review,
-                                    'Rating Score': rating_score,
-                                    'Review': review,
-                                    'Scores':{'Value': value,
-                                            'Quality': quality,
-                                            'Reliability': reliability,
-                                            'Performance': performance,
-                                            'Comfort': comfort,
-                                            'Styling': styling,
-                                             },
-                                }
-                        print(REVIEW)
-                        db.reviews.insert(REVIEW)
-                        review_count += 1
-                    except:
-                        pass
+    def review_builder(self):
 
 
 
-if __name__ == "__main__":
-    bob = Scraper()
-    bob.get_listing_pages(pre, suf)
-    for page in bob.clean_url_list():
-        web = bob.get_lxml(page)
-        model = ModelParser(web)
-        model.put_models_in_database()
-        model.get_reviews_link()
-        link = model.get_reviews_link()
-        review = ReviewsParser(link)
-        review.extract_all_reviews_urls()
-        review.put_reviews_in_database()
+
+
+
+
+        self.find_rating_score()[0] #count of reviews per page
+        self.find_rating_score()[1] #list
+        self.extract_clean_dates() #list
+        self.extract_reviews() #list
+        self.extract_scores() #list of lists
+
+
+
+    def extract_all_reviews(self):
+        url_pre = self.reviews_link.split('page=1')[0]
+        url_suf = self.reviews_link.split('page=1')[1]
+        for i in range(1, self.find_review_page_count() + 1):
+            reviews_paginator = url_pre + 'page=' + str(i) + url_suf
+            print(reviews_paginator)
+
+
+
+
+
+class ListingsBuilder(ModelParser, ReviewsParser):
+
+
+        def test():
+            '''
+            bob = Scraper()
+            bob.get_listing_pages(pre, suf)
+            bob.clean_url_list()
+            bob.backup_list_to_csv('./urls/url_list.csv')
+            for _ in bob.clean_url_list():
+                everything in ModelParser
+            '''
+            bob = Scraper()
+            bob.get_listing_pages(pre, suf)
+            x = bob.clean_url_list()[16]
+            x = bob.get_lxml(x)
+            tom = ModelParser(x)
+            y = tom.get_reviews_link()
+            tim = ReviewsParser(y)
