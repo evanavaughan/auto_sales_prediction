@@ -1,14 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 import csv
 import re
 from variables import search_results, pre, suf
 from pymongo import MongoClient
 from api_keys import client_pass
 import math
-
-'''still editing'''
 
 class Requests:
 
@@ -142,6 +139,8 @@ class ModelParser(Requests):
         return make, model, int(year)
 
     def put_models_in_database(self):
+        '''runs 'ModelParser' class helper functions to put that data into a MongoDB collection'''
+
         client = MongoClient(client_pass)
         db = client.autos
         try:
@@ -245,15 +244,17 @@ class ReviewsParser(ModelParser):
         return scores
 
     def v_id(self):
-        '''
-        pulls the vehicle id out of the xml of the review page
-        '''
+        '''pulls the vehicle id out of the xml of the review page'''
+
         id = self.reviews_lxml.find('div', {'class':'modal-scroller'}).get('data-base-panel-url')
         id = id.split('vehicleid=')[1][:6]
         return int(id)
 
 
     def extract_all_reviews_urls(self):
+        '''goes to first page of review, determines how many pages of reviews
+        outputs list of paginated review links'''
+
         self.reviews_urls = []
         try:
             url_pre = self.reviews_link.split('page=1')[0]
@@ -269,6 +270,8 @@ class ReviewsParser(ModelParser):
 
 
     def put_reviews_in_database(self):
+        '''runs 'ReviewsParser' class helper functions to put that data into a MongoDB collection'''
+
         client = MongoClient(client_pass)
         db = client.autos
         if len(self.reviews_urls) > 0:
@@ -320,7 +323,7 @@ if __name__ == "__main__":
         try:
             web = bob.get_lxml(page)
             model = ModelParser(web)
-            #model.put_models_in_database()
+            model.put_models_in_database()
             model.get_reviews_link()
             link = model.get_reviews_link()
             review = ReviewsParser(link)
