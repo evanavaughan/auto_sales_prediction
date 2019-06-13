@@ -1,6 +1,6 @@
 api_keys.py
-auto_sales_scraper-jupyter.ipynb
-kbb_review_parser-jupyter.ipynb
-kbb_scraper-jupyter playground.ipynb
-kbb_scraper-jupyter.ipynb
-kbb_scraper-alternate.py
+scrapers/auto_sales_scraper-jupyter.ipynb
+scrapers/kbb_review_parser-jupyter.ipynb
+scrapers/kbb_scraper-jupyter playground.ipynb
+scrapers/kbb_scraper-jupyter.ipynb
+scrapers/kbb_scraper-alternate.py
