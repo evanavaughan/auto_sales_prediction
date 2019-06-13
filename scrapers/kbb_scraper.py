@@ -317,8 +317,6 @@ class ReviewsParser(ModelParser):
 if __name__ == "__main__":
     bob = Scraper()
     bob.get_listing_pages(pre, suf)
-    print(len(bob.clean_url_list()))
-    print(bob.clean_url_list()[39:40])
     for page in bob.clean_url_list():
         try:
             web = bob.get_lxml(page)
