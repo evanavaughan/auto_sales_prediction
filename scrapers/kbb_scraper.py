@@ -66,7 +66,7 @@ class ModelParser(Requests):
             combined = int(combined.split()[0])
             return combined
         except:
-            99
+            return 99
 
     def city_hwy_mpg(self):
         '''extracts and returns the city and hwy mpg'''
@@ -76,7 +76,7 @@ class ModelParser(Requests):
             city, hwy = int(mpg[0]), int(mpg[3])
             return city, hwy
         except:
-            99, 99
+            return 99, 99
 
     def ratings(self):
         '''extracts and expert and user ratings from page as float'''
