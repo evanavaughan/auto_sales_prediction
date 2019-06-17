@@ -131,4 +131,4 @@ def run(lst_of_urls):
 
 
 if __main__='__name__':
-    run(auto_sales_urls)
+    run(list_of_urls)
