@@ -7,6 +7,11 @@ from pymongo import MongoClient
 from api_keys import client_pass
 import math
 
+'''
+web scraper used to access attributes and reviews for car models
+on kellybluebook.com and insert them in a MongoDB database
+'''
+
 class Requests:
 
     def __init__(self, site=None):
@@ -25,7 +30,7 @@ class Scraper(Requests):
         '''scrapes search results to get url list for individual car models'''
 
         self.urls = []
-        for i in range(1,139):        #change to 139
+        for i in range(1,139):
             site  = prefix + str(i) + suffix
             for link in self.get_lxml(site).find_all('a'):
                 self.urls.append(link.get('href'))
